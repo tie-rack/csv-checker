@@ -1,0 +1,9 @@
+"all","good","row"
+"good","bad "example" value","row"
+"this","one","forgets to end
+"and","this","is okay"
+now this one "is,bad,"over there"
+I assert that "this" is,a,good line
+"this,should be handled",just,fine
+"but, here's "one,more,bad line
+"and this ""has a, comma",after,a quoted quote which is okay
