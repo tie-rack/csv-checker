@@ -6,21 +6,27 @@ use std::path::Path;
 extern crate csv_checker;
 
 fn main() {
-    let arg = match env::args().nth(1) {
-        Some(s) => s,
-        None => panic!("Give a path!"),
-    };
+    // Skip the first arg since it's the program itself
+    let paths = env::args().skip(1);
 
-    let path = Path::new(&arg);
+    if paths.len() == 0 {
+        panic!("Provide some paths!");
+    }
 
-    let file = match File::open(&path) {
-        Err(why) => panic!("couldn't open: {}", Error::description(&why)),
-        Ok(file) => file,
-    };
+    for arg in paths {
+        println!("= {} =", arg);
 
-    let errors: Vec<csv_checker::CSVError> = csv_checker::errors_for_csv(file);
+        let path = Path::new(&arg);
 
-    for error in errors {
-        println!("error at line {}, col {}", error.line, error.col);
+        let file = match File::open(&path) {
+            Err(why) => panic!("couldn't open: {}", Error::description(&why)),
+            Ok(file) => file,
+        };
+
+        let errors: Vec<csv_checker::CSVError> = csv_checker::errors_for_csv(file);
+
+        for error in errors {
+            println!("error at line {}, col {}", error.line, error.col);
+        }
     }
 }
