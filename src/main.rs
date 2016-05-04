@@ -5,7 +5,9 @@ use std::path::Path;
 
 extern crate csv_checker;
 
-fn main() {
+fn errors_for_args() -> i32 {
+    let mut exit_code: i32 = 0;
+
     // Skip the first arg since it's the program itself
     let paths = env::args().skip(1);
 
@@ -25,8 +27,19 @@ fn main() {
 
         let errors: Vec<csv_checker::CSVError> = csv_checker::errors_for_csv(file);
 
+        if errors.len() > 0 {
+            exit_code = 1;
+        }
+
         for error in errors {
             println!("error at line {}, col {}", error.line, error.col);
         }
     }
+
+    exit_code
+}
+
+fn main() {
+    let exit_code = errors_for_args();
+    std::process::exit(exit_code);
 }
