@@ -1,7 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 
-const NEWLINE: u8 = 10;
+const LF: u8 = 10;
+const CR: u8 = 13;
 const QUOTE: u8 = 34;
 const COMMA: u8 = 44;
 
@@ -11,6 +12,7 @@ enum CSVState {
     NonQuotedQuote,
     QuotedValue,
     QuoteQuote,
+    ExpectLF,
     Error,
 }
 
@@ -43,7 +45,10 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             (&CSVState::NonQuotedValue, COMMA) => {
                 state = CSVState::Start;
             }
-            (&CSVState::NonQuotedValue, NEWLINE) => {
+            (&CSVState::NonQuotedValue, CR) => {
+                state = CSVState::ExpectLF;
+            }
+            (&CSVState::NonQuotedValue, LF) => {
                 state = CSVState::Start;
             }
             (&CSVState::NonQuotedValue, QUOTE) => {
@@ -59,7 +64,11 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
                 errors.push(CSVError { line: line, col: col });
                 state = CSVState::Error;
             }
-            (&CSVState::NonQuotedQuote, NEWLINE) => {
+            (&CSVState::NonQuotedQuote, CR) => {
+                errors.push(CSVError { line: line, col: col });
+                state = CSVState::Start;
+            }
+            (&CSVState::NonQuotedQuote, LF) => {
                 errors.push(CSVError { line: line, col: col });
                 state = CSVState::Start;
             }
@@ -68,7 +77,11 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             (&CSVState::QuotedValue, QUOTE) => {
                 state = CSVState::QuoteQuote;
             },
-            (&CSVState::QuotedValue, NEWLINE) => {
+            (&CSVState::QuotedValue, CR) => {
+                errors.push(CSVError { line: line, col: col });
+                state = CSVState::Start;
+            },
+            (&CSVState::QuotedValue, LF) => {
                 errors.push(CSVError { line: line, col: col });
                 state = CSVState::Start;
             },
@@ -83,7 +96,10 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             (&CSVState::QuoteQuote, COMMA) => {
                 state = CSVState::Start;
             },
-            (&CSVState::QuoteQuote, NEWLINE) => {
+            (&CSVState::QuoteQuote, CR) => {
+                state = CSVState::ExpectLF;
+            },
+            (&CSVState::QuoteQuote, LF) => {
                 state = CSVState::Start;
             },
             (&CSVState::QuoteQuote, _) => {
@@ -91,9 +107,18 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
                 state = CSVState::Error;
             },
 
+            // If we're looking at CR, we need a LF to follow
+            (&CSVState::ExpectLF, LF) => {
+                state = CSVState::Start;
+            },
+            (&CSVState::ExpectLF, _) => {
+                errors.push(CSVError { line: line, col: col });
+                state = CSVState::Error;
+            },
+
             // If we're in an error state, once we reach a newline, we
             // start over.
-            (&CSVState::Error, NEWLINE) => {
+            (&CSVState::Error, LF) => {
                 state = CSVState::Start;
             },
             _ => ()
