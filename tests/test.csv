@@ -7,3 +7,4 @@ I assert that "this" is,a,good line
 "this,should be handled",just,fine
 "but, here's "one,more,bad line
 "and this ""has a, comma",after,a quoted quote which is okay
+after empty fields,you can have,,,"a quoted one with a, comma",and it's fine

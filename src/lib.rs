@@ -33,9 +33,12 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
         let b = byte.unwrap();
 
         match (&state, b) {
-            // At the start of a field, are we a quoted field or not?
+            // At the start of a field, are we a quoted field, non-quoted, or empty?
             (&CSVState::Start, QUOTE) => {
                 state = CSVState::QuotedValue;
+            },
+            (&CSVState::Start, COMMA) => {
+                state = CSVState::Start
             },
             (&CSVState::Start, _) => {
                 state = CSVState::NonQuotedValue;
