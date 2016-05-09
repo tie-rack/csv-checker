@@ -1,9 +1,21 @@
 use std::env;
-use std::error::Error;
 use std::fs::File;
 use std::path::Path;
 
 extern crate csv_checker;
+
+fn report_errors_for_file(file: File) -> i32 {
+    let errors: Vec<csv_checker::CSVError> = csv_checker::errors_for_csv(file);
+
+    for error in errors.iter() {
+        println!("error at line {}, col {}", error.line, error.col);
+    }
+
+    match errors.len() {
+        0 => 0,
+        _ => 1
+    }
+}
 
 fn errors_for_args() -> i32 {
     let mut exit_code: i32 = 0;
@@ -20,20 +32,13 @@ fn errors_for_args() -> i32 {
 
         let path = Path::new(&arg);
 
-        let file = match File::open(&path) {
-            Err(why) => panic!("couldn't open: {}", Error::description(&why)),
-            Ok(file) => file,
+        exit_code += match File::open(&path) {
+            Err(_) => {
+                println!("!!! Not found");
+                1
+            }
+            Ok(file) => report_errors_for_file(file),
         };
-
-        let errors: Vec<csv_checker::CSVError> = csv_checker::errors_for_csv(file);
-
-        if errors.len() > 0 {
-            exit_code = 1;
-        }
-
-        for error in errors {
-            println!("error at line {}, col {}", error.line, error.col);
-        }
     }
 
     exit_code
