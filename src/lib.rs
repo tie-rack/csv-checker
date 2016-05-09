@@ -85,15 +85,15 @@ fn parse_err(byte: u8) -> CSVResult {
     }
 }
 
-fn next_state(state: CSVState, b: u8) -> CSVResult {
+fn next_state(state: CSVState, byte: u8) -> CSVResult {
     match state {
-        CSVState::Start          => parse_start(b),
-        CSVState::NonQuotedValue => parse_non_quoted(b),
-        CSVState::NonQuotedQuote => parse_non_quoted_quote(b),
-        CSVState::QuotedValue    => parse_quoted(b),
-        CSVState::QuoteQuote     => parse_quote_quote(b),
-        CSVState::ExpectLF       => parse_cr(b),
-        CSVState::Error          => parse_err(b),
+        CSVState::Start          => parse_start(byte),
+        CSVState::NonQuotedValue => parse_non_quoted(byte),
+        CSVState::NonQuotedQuote => parse_non_quoted_quote(byte),
+        CSVState::QuotedValue    => parse_quoted(byte),
+        CSVState::QuoteQuote     => parse_quote_quote(byte),
+        CSVState::ExpectLF       => parse_cr(byte),
+        CSVState::Error          => parse_err(byte),
     }
 }
 
@@ -104,10 +104,10 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
 
     let mut errors: Vec<CSVError> = Vec::new();
 
-    for byte in file.bytes() {
-        let b = byte.unwrap();
+    for b in file.bytes() {
+        let byte = b.unwrap();
 
-        state = match next_state(state, b) {
+        state = match next_state(state, byte) {
             Ok(new_state) => new_state,
             Err(_)        => {
                 errors.push(CSVError { line: line, col: col });
@@ -115,7 +115,7 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             },
         };
 
-        if b == LF {
+        if byte == LF {
             line = line + 1;
             col = 0;
         } else {
