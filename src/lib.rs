@@ -127,7 +127,7 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             _ => ()
         };
 
-        if b == 10 {
+        if b == LF {
             line = line + 1;
             col = 0;
         } else {
