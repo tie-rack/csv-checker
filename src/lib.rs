@@ -6,7 +6,6 @@ const CR: u8 = 13;
 const QUOTE: u8 = 34;
 const COMMA: u8 = 44;
 
-#[derive(PartialEq)]
 enum CSVState {
     Start,
     NonQuotedValue,
