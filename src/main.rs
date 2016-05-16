@@ -13,7 +13,7 @@ fn report_errors_for_file(file: File) -> i32 {
 
     match errors.len() {
         0 => 0,
-        _ => 1
+        _ => 1,
     }
 }
 

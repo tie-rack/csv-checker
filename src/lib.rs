@@ -28,17 +28,17 @@ fn parse_start(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuotedValue),
         COMMA => Ok(CSVState::Start),
-        _ => Ok(CSVState::NonQuotedValue)
+        _ => Ok(CSVState::NonQuotedValue),
     }
 }
 
 fn parse_non_quoted(byte: u8) -> CSVResult {
     match byte {
         COMMA => Ok(CSVState::Start),
-        CR    => Ok(CSVState::ExpectLF),
-        LF    => Ok(CSVState::Start),
+        CR => Ok(CSVState::ExpectLF),
+        LF => Ok(CSVState::Start),
         QUOTE => Ok(CSVState::NonQuotedQuote),
-        _     => Ok(CSVState::NonQuotedValue),
+        _ => Ok(CSVState::NonQuotedValue),
     }
 }
 
@@ -46,18 +46,18 @@ fn parse_non_quoted_quote(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::NonQuotedValue),
         COMMA => Err(()),
-        CR    => Err(()),
-        LF    => Err(()),
-        _     => Ok(CSVState::NonQuotedQuote),
+        CR => Err(()),
+        LF => Err(()),
+        _ => Ok(CSVState::NonQuotedQuote),
     }
 }
 
 fn parse_quoted(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuoteQuote),
-        CR    => Err(()),
-        LF    => Err(()),
-        _     => Ok(CSVState::QuotedValue),
+        CR => Err(()),
+        LF => Err(()),
+        _ => Ok(CSVState::QuotedValue),
     }
 }
 
@@ -65,35 +65,35 @@ fn parse_quote_quote(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuotedValue),
         COMMA => Ok(CSVState::Start),
-        CR    => Ok(CSVState::ExpectLF),
-        LF    => Ok(CSVState::Start),
-        _     => Err(()),
+        CR => Ok(CSVState::ExpectLF),
+        LF => Ok(CSVState::Start),
+        _ => Err(()),
     }
 }
 
 fn parse_cr(byte: u8) -> CSVResult {
     match byte {
         LF => Ok(CSVState::Start),
-        _  => Err(()),
+        _ => Err(()),
     }
 }
 
 fn parse_err(byte: u8) -> CSVResult {
     match byte {
         LF => Ok(CSVState::Start),
-        _  => Ok(CSVState::Error),
+        _ => Ok(CSVState::Error),
     }
 }
 
 fn next_state(state: CSVState, byte: u8) -> CSVResult {
     match state {
-        CSVState::Start          => parse_start(byte),
+        CSVState::Start => parse_start(byte),
         CSVState::NonQuotedValue => parse_non_quoted(byte),
         CSVState::NonQuotedQuote => parse_non_quoted_quote(byte),
-        CSVState::QuotedValue    => parse_quoted(byte),
-        CSVState::QuoteQuote     => parse_quote_quote(byte),
-        CSVState::ExpectLF       => parse_cr(byte),
-        CSVState::Error          => parse_err(byte),
+        CSVState::QuotedValue => parse_quoted(byte),
+        CSVState::QuoteQuote => parse_quote_quote(byte),
+        CSVState::ExpectLF => parse_cr(byte),
+        CSVState::Error => parse_err(byte),
     }
 }
 
@@ -109,10 +109,13 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
 
         state = match next_state(state, byte) {
             Ok(new_state) => new_state,
-            Err(_)        => {
-                errors.push(CSVError { line: line, col: col });
+            Err(_) => {
+                errors.push(CSVError {
+                    line: line,
+                    col: col,
+                });
                 CSVState::Error
-            },
+            }
         };
 
         if byte == LF {
