@@ -6,6 +6,12 @@ const CR: u8 = 13;
 const QUOTE: u8 = 34;
 const COMMA: u8 = 44;
 
+// Error messages
+pub const UNEXPECTED_EOF: &'static str = "Unexpected end of field";
+pub const UNEXPECTED_EOL: &'static str = "Unexpected end of line";
+pub const UNEXPECTED_CHAR: &'static str = "Unexpected character after quote";
+pub const EXPECTED_LF: &'static str = "Expected linefeed after carriage return";
+
 enum CSVState {
     Start,
     NonQuotedValue,
@@ -16,7 +22,7 @@ enum CSVState {
     Error,
 }
 
-type CSVResult = Result<CSVState, ()>;
+type CSVResult = Result<CSVState, &'static str>;
 
 type ByteParser = fn(u8) -> CSVResult;
 
@@ -24,6 +30,7 @@ type ByteParser = fn(u8) -> CSVResult;
 pub struct CSVError {
     pub line: i32,
     pub col: i32,
+    pub text: &'static str,
 }
 
 fn parse_start(byte: u8) -> CSVResult {
@@ -47,9 +54,9 @@ fn parse_non_quoted(byte: u8) -> CSVResult {
 fn parse_non_quoted_quote(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::NonQuotedValue),
-        COMMA => Err(()),
-        CR => Err(()),
-        LF => Err(()),
+        COMMA => Err(UNEXPECTED_EOF),
+        CR => Err(UNEXPECTED_EOL),
+        LF => Err(UNEXPECTED_EOL),
         _ => Ok(CSVState::NonQuotedQuote),
     }
 }
@@ -57,8 +64,8 @@ fn parse_non_quoted_quote(byte: u8) -> CSVResult {
 fn parse_quoted(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuoteQuote),
-        CR => Err(()),
-        LF => Err(()),
+        CR => Err(UNEXPECTED_EOL),
+        LF => Err(UNEXPECTED_EOL),
         _ => Ok(CSVState::QuotedValue),
     }
 }
@@ -69,14 +76,14 @@ fn parse_quote_quote(byte: u8) -> CSVResult {
         COMMA => Ok(CSVState::Start),
         CR => Ok(CSVState::ExpectLF),
         LF => Ok(CSVState::Start),
-        _ => Err(()),
+        _ => Err(UNEXPECTED_CHAR),
     }
 }
 
 fn parse_cr(byte: u8) -> CSVResult {
     match byte {
         LF => Ok(CSVState::Start),
-        _ => Err(()),
+        _ => Err(EXPECTED_LF),
     }
 }
 
@@ -112,10 +119,11 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
 
         state = match next_state(state, byte) {
             Ok(new_state) => new_state,
-            Err(_) => {
+            Err(error) => {
                 errors.push(CSVError {
                     line: line,
                     col: col,
+                    text: error,
                 });
                 CSVState::Error
             }
