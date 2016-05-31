@@ -18,6 +18,8 @@ enum CSVState {
 
 type CSVResult = Result<CSVState, ()>;
 
+type ByteParser = fn(u8) -> CSVResult;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct CSVError {
     pub line: i32,
@@ -86,15 +88,16 @@ fn parse_err(byte: u8) -> CSVResult {
 }
 
 fn next_state(state: CSVState, byte: u8) -> CSVResult {
-    match state {
-        CSVState::Start => parse_start(byte),
-        CSVState::NonQuotedValue => parse_non_quoted(byte),
-        CSVState::NonQuotedQuote => parse_non_quoted_quote(byte),
-        CSVState::QuotedValue => parse_quoted(byte),
-        CSVState::QuoteQuote => parse_quote_quote(byte),
-        CSVState::ExpectLF => parse_cr(byte),
-        CSVState::Error => parse_err(byte),
-    }
+    let parse_fn: ByteParser = match state {
+        CSVState::Start => parse_start,
+        CSVState::NonQuotedValue => parse_non_quoted,
+        CSVState::NonQuotedQuote => parse_non_quoted_quote,
+        CSVState::QuotedValue => parse_quoted,
+        CSVState::QuoteQuote => parse_quote_quote,
+        CSVState::ExpectLF => parse_cr,
+        CSVState::Error => parse_err,
+    };
+    parse_fn(byte)
 }
 
 pub fn errors_for_csv(file: File) -> Vec<CSVError> {
