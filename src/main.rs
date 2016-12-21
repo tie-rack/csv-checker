@@ -8,7 +8,10 @@ fn report_errors_for_file(file: File) -> i32 {
     let errors = csv_checker::errors_for_csv(file);
 
     for error in &errors {
-        println!("error at line {}, col {}: {}", error.line, error.col, error.text);
+        println!("error at line {}, col {}: {}",
+                 error.line,
+                 error.col,
+                 error.text);
     }
 
     match errors.len() {
