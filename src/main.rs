@@ -7,7 +7,7 @@ extern crate csv_checker;
 fn report_errors_for_file(file: File) -> i32 {
     let errors = csv_checker::errors_for_csv(file);
 
-    for error in errors.iter() {
+    for error in &errors {
         println!("error at line {}, col {}: {}", error.line, error.col, error.text);
     }
 
