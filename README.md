@@ -5,5 +5,5 @@ Report formatting errors for CSV files.
 ## Usage
 
 ```sh
-$ cargo run path/to/file.csv
+$ cargo run --bin csv_check path/to/file.csv
 ```
