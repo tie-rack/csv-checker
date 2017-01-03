@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::Read;
+use std::sync::mpsc::Sender;
 
 const LF: u8 = 10;
 const CR: u8 = 13;
@@ -107,12 +108,10 @@ fn next_state(state: CSVState, byte: u8) -> CSVResult {
     parse_fn(byte)
 }
 
-pub fn errors_for_csv(file: File) -> Vec<CSVError> {
+pub fn publish_errors_for_csv(file: File, sender: Sender<CSVError>) {
     let mut state = CSVState::Start;
     let mut line = 1;
     let mut col = 0;
-
-    let mut errors: Vec<CSVError> = Vec::new();
 
     for b in file.bytes() {
         let byte = b.unwrap();
@@ -120,11 +119,11 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
         state = match next_state(state, byte) {
             Ok(new_state) => new_state,
             Err(error) => {
-                errors.push(CSVError {
+                sender.send(CSVError {
                     line: line,
                     col: col,
                     text: error,
-                });
+                }).unwrap();
                 CSVState::Error
             }
         };
@@ -136,6 +135,4 @@ pub fn errors_for_csv(file: File) -> Vec<CSVError> {
             col = col + 1;
         }
     }
-
-    errors
 }

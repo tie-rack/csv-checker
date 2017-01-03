@@ -1,23 +1,28 @@
 use std::env;
 use std::fs::File;
 use std::path::Path;
+use std::sync::mpsc::channel;
+use std::thread;
 
 extern crate csv_checker;
 
 fn report_errors_for_file(file: File) -> i32 {
-    let errors = csv_checker::errors_for_csv(file);
+    let mut exit = 0;
+    let (tx, rx) = channel();
 
-    for error in &errors {
+    thread::spawn(move || {
+        csv_checker::publish_errors_for_csv(file, tx);
+    });
+
+    for error in &rx {
+        exit = 1;
         println!("error at line {}, col {}: {}",
                  error.line,
                  error.col,
                  error.text);
     }
 
-    match errors.len() {
-        0 => 0,
-        _ => 1,
-    }
+    exit
 }
 
 fn errors_for_args() -> i32 {
