@@ -40,6 +40,18 @@ fn finds_errors_in_csv() {
                    col: 14,
                    text: csv_checker::UNEXPECTED_CHAR,
                }));
+    assert_eq!(error_iterator.next(),
+               Some(csv_checker::CSVError {
+                   line: 11,
+                   col: 39,
+                   text: csv_checker::UNEXPECTED_EOL,
+               }));
+    assert_eq!(error_iterator.next(),
+               Some(csv_checker::CSVError {
+                   line: 12,
+                   col: 28,
+                   text: csv_checker::UNEXPECTED_EOL,
+               }));
     assert_eq!(error_iterator.next(), None);
 
 }

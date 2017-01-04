@@ -8,3 +8,5 @@ I assert that "this" is,a,good line
 "but, here's "one,more,bad line
 "and this ""has a, comma",after,a quoted quote which is okay
 after empty fields,you can have,,,"a quoted one with a, comma",and it's fine
+"if you have two lines with open fields
+"in a row, both are reported
