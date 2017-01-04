@@ -124,10 +124,10 @@ pub fn publish_errors_for_csv(file: File, sender: Sender<CSVError>) {
                     col: col,
                     text: error,
                 }).unwrap();
-                if error == UNEXPECTED_EOL {
-                    CSVState::Start
-                } else {
-                    CSVState::Error
+                match error {
+                    UNEXPECTED_EOF => CSVState::Start,
+                    UNEXPECTED_EOL => CSVState::Start,
+                    _ => CSVState::Error
                 }
             }
         };
