@@ -31,8 +31,8 @@ fn finds_errors_in_csv() {
     assert_eq!(error_iterator.next(),
                Some(csv_checker::CSVError {
                    line: 5,
-                   col: 16,
-                   text: csv_checker::UNEXPECTED_EOF,
+                   col: 31,
+                   text: csv_checker::UNEXPECTED_EOL,
                }));
     assert_eq!(error_iterator.next(),
                Some(csv_checker::CSVError {
@@ -51,18 +51,6 @@ fn finds_errors_in_csv() {
                    line: 12,
                    col: 28,
                    text: csv_checker::UNEXPECTED_EOL,
-               }));
-    assert_eq!(error_iterator.next(),
-               Some(csv_checker::CSVError {
-                   line: 13,
-                   col: 18,
-                   text: csv_checker::UNEXPECTED_EOF,
-               }));
-    assert_eq!(error_iterator.next(),
-               Some(csv_checker::CSVError {
-                   line: 13,
-                   col: 39,
-                   text: csv_checker::UNEXPECTED_EOF,
                }));
     assert_eq!(error_iterator.next(), None);
 

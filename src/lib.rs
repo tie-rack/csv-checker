@@ -8,7 +8,6 @@ const QUOTE: u8 = 34;
 const COMMA: u8 = 44;
 
 // Error messages
-pub const UNEXPECTED_EOF: &'static str = "Unexpected end of field";
 pub const UNEXPECTED_EOL: &'static str = "Unexpected end of line";
 pub const UNEXPECTED_CHAR: &'static str = "Unexpected character after quote";
 pub const EXPECTED_LF: &'static str = "Expected linefeed after carriage return";
@@ -16,7 +15,6 @@ pub const EXPECTED_LF: &'static str = "Expected linefeed after carriage return";
 enum CSVState {
     Start,
     NonQuotedValue,
-    NonQuotedQuote,
     QuotedValue,
     QuoteQuote,
     ExpectLF,
@@ -47,18 +45,7 @@ fn parse_non_quoted(byte: u8) -> CSVResult {
         COMMA => Ok(CSVState::Start),
         CR => Ok(CSVState::ExpectLF),
         LF => Ok(CSVState::Start),
-        QUOTE => Ok(CSVState::NonQuotedQuote),
         _ => Ok(CSVState::NonQuotedValue),
-    }
-}
-
-fn parse_non_quoted_quote(byte: u8) -> CSVResult {
-    match byte {
-        QUOTE => Ok(CSVState::NonQuotedValue),
-        COMMA => Err(UNEXPECTED_EOF),
-        CR => Err(UNEXPECTED_EOL),
-        LF => Err(UNEXPECTED_EOL),
-        _ => Ok(CSVState::NonQuotedQuote),
     }
 }
 
@@ -99,7 +86,6 @@ fn next_state(state: CSVState, byte: u8) -> CSVResult {
     let parse_fn: ByteParser = match state {
         CSVState::Start => parse_start,
         CSVState::NonQuotedValue => parse_non_quoted,
-        CSVState::NonQuotedQuote => parse_non_quoted_quote,
         CSVState::QuotedValue => parse_quoted,
         CSVState::QuoteQuote => parse_quote_quote,
         CSVState::ExpectLF => parse_cr,
@@ -125,7 +111,6 @@ pub fn publish_errors_for_csv(file: File, sender: Sender<CSVError>) {
                     text: error,
                 }).unwrap();
                 match error {
-                    UNEXPECTED_EOF => CSVState::Start,
                     UNEXPECTED_EOL => CSVState::Start,
                     _ => CSVState::Error
                 }
