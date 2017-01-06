@@ -93,12 +93,12 @@ fn next_state(state: CSVState, byte: u8) -> CSVResult {
     parse_fn(byte)
 }
 
-pub fn publish_errors_for_csv<T: Read>(readable: T, sender: Sender<CSVError>) {
+pub fn publish_errors_for_csv<T: Read>(reader: T, sender: Sender<CSVError>) {
     let mut state = CSVState::Start;
     let mut line = 1;
     let mut col = 0;
 
-    for b in readable.bytes() {
+    for b in reader.bytes() {
         let byte = b.unwrap();
 
         state = match next_state(state, byte) {
