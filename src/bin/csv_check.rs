@@ -14,7 +14,7 @@ fn report_errors_for_file(file: File) -> i32 {
         csv_checker::publish_errors_for_csv(file, tx);
     });
 
-    for error in &rx {
+    for error in rx {
         exit = 1;
         println!("error at line {}, col {}: {}",
                  error.line,
