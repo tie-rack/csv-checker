@@ -43,9 +43,8 @@ fn parse_start(byte: u8) -> CSVResult {
 
 fn parse_non_quoted(byte: u8) -> CSVResult {
     match byte {
-        COMMA => Ok(CSVState::Start),
+        COMMA | LF => Ok(CSVState::Start),
         CR => Ok(CSVState::ExpectLF),
-        LF => Ok(CSVState::Start),
         _ => Ok(CSVState::NonQuotedValue),
     }
 }
@@ -53,8 +52,7 @@ fn parse_non_quoted(byte: u8) -> CSVResult {
 fn parse_quoted(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuoteQuote),
-        CR => Err(UNEXPECTED_EOL),
-        LF => Err(UNEXPECTED_EOL),
+        CR | LF => Err(UNEXPECTED_EOL),
         _ => Ok(CSVState::QuotedValue),
     }
 }
@@ -62,9 +60,8 @@ fn parse_quoted(byte: u8) -> CSVResult {
 fn parse_quote_quote(byte: u8) -> CSVResult {
     match byte {
         QUOTE => Ok(CSVState::QuotedValue),
-        COMMA => Ok(CSVState::Start),
+        COMMA | LF => Ok(CSVState::Start),
         CR => Ok(CSVState::ExpectLF),
-        LF => Ok(CSVState::Start),
         _ => Err(UNEXPECTED_CHAR),
     }
 }
