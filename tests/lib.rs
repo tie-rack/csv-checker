@@ -1,6 +1,5 @@
 use std::fs::File;
 use std::error::Error;
-use std::sync::mpsc::channel;
 
 extern crate csv_checker;
 
@@ -11,8 +10,7 @@ fn finds_errors_in_csv() {
         Ok(file) => file,
     };
 
-    let (tx, rx) = channel();
-    csv_checker::publish_errors_for_csv(file, tx);
+    let rx = csv_checker::publish_errors_for_csv(file);
 
     let mut error_iterator = rx.iter();
 

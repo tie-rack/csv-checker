@@ -1,5 +1,7 @@
 use std::io::Read;
-use std::sync::mpsc::Sender;
+use std::sync::mpsc::channel;
+use std::sync::mpsc::Receiver;
+use std::thread;
 
 const LF: u8 = 10;
 const CR: u8 = 13;
@@ -93,34 +95,40 @@ fn next_state(state: CSVState, byte: u8) -> CSVResult {
     parse_fn(byte)
 }
 
-pub fn publish_errors_for_csv<T: Read>(reader: T, sender: Sender<CSVError>) {
-    let mut state = CSVState::Start;
-    let mut line = 1;
-    let mut col = 0;
+pub fn publish_errors_for_csv<T: Read + Send + 'static>(reader: T) -> Receiver<CSVError> {
+    let (sender, receiver) = channel();
 
-    for b in reader.bytes() {
-        let byte = b.unwrap();
+    thread::spawn(move || {
+        let mut state = CSVState::Start;
+        let mut line = 1;
+        let mut col = 0;
 
-        state = match next_state(state, byte) {
-            Ok(new_state) => new_state,
-            Err(error) => {
-                sender.send(CSVError {
-                    line: line,
-                    col: col,
-                    text: error,
-                }).unwrap();
-                match error {
-                    UNEXPECTED_EOL => CSVState::Start,
-                    _ => CSVState::Error
+        for b in reader.bytes() {
+            let byte = b.unwrap();
+
+            state = match next_state(state, byte) {
+                Ok(new_state) => new_state,
+                Err(error) => {
+                    sender.send(CSVError {
+                        line: line,
+                        col: col,
+                        text: error,
+                    }).unwrap();
+                    match error {
+                        UNEXPECTED_EOL => CSVState::Start,
+                        _ => CSVState::Error
+                    }
                 }
-            }
-        };
+            };
 
-        if byte == LF {
-            line = line + 1;
-            col = 0;
-        } else {
-            col = col + 1;
+            if byte == LF {
+                line += 1;
+                col = 0;
+            } else {
+                col += 1;
+            }
         }
-    }
+    });
+
+    receiver
 }
