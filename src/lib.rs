@@ -3,10 +3,10 @@ use std::sync::mpsc::channel;
 use std::sync::mpsc::Receiver;
 use std::thread;
 
-const LF: u8 = 10;
-const CR: u8 = 13;
-const QUOTE: u8 = 34;
-const COMMA: u8 = 44;
+const LF: u8 = b'\n';
+const CR: u8 = b'\r';
+const QUOTE: u8 = b'"';
+const COMMA: u8 = b',';
 
 // Error messages
 pub const UNEXPECTED_EOL: &'static str = "Unexpected end of line";
