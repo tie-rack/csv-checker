@@ -2,8 +2,14 @@
 
 Report formatting errors for CSV files.
 
+## Install
+
+```sh
+$ cargo install
+```
+
 ## Usage
 
 ```sh
-$ cargo run --bin csv_check path/to/file.csv
+$ csv-check path/to/file.csv
 ```
