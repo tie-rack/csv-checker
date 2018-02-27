@@ -13,9 +13,9 @@ const QUOTE: u8 = b'"';
 const COMMA: u8 = b',';
 
 // Error messages
-pub const UNEXPECTED_EOL: &'static str = "Unexpected end of line";
-pub const UNEXPECTED_CHAR: &'static str = "Unexpected character after quote";
-pub const EXPECTED_LF: &'static str = "Expected linefeed after carriage return";
+pub const UNEXPECTED_EOL: &str = "Unexpected end of line";
+pub const UNEXPECTED_CHAR: &str = "Unexpected character after quote";
+pub const EXPECTED_LF: &str = "Expected linefeed after carriage return";
 
 enum CSVState {
     Start,
