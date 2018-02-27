@@ -28,69 +28,47 @@ enum CSVState {
 
 type CSVResult = Result<CSVState, &'static str>;
 
+trait ParseByte {
+    fn parse_byte(self, byte: u8) -> CSVResult;
+}
+
+impl ParseByte for CSVState {
+    fn parse_byte(self, byte: u8) -> CSVResult {
+        match (self, byte) {
+            (CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
+            (CSVState::Start, COMMA) => Ok(CSVState::Start),
+            (CSVState::Start, _) => Ok(CSVState::NonQuotedValue),
+
+            (CSVState::NonQuotedValue, COMMA) => Ok(CSVState::Start),
+            (CSVState::NonQuotedValue, LF) => Ok(CSVState::Start),
+            (CSVState::NonQuotedValue, CR) => Ok(CSVState::ExpectLF),
+            (CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
+
+            (CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
+            (CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
+            (CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
+            (CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
+
+            (CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
+            (CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
+            (CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
+            (CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
+            (CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
+
+            (CSVState::ExpectLF, LF) => Ok(CSVState::Start),
+            (CSVState::ExpectLF, _) => Err(EXPECTED_LF),
+
+            (CSVState::Error, LF) => Ok(CSVState::Start),
+            (CSVState::Error, _) => Ok(CSVState::Error),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct CSVError {
     pub line: i32,
     pub col: i32,
     pub text: &'static str,
-}
-
-fn parse_start(byte: u8) -> CSVResult {
-    match byte {
-        QUOTE => Ok(CSVState::QuotedValue),
-        COMMA => Ok(CSVState::Start),
-        _ => Ok(CSVState::NonQuotedValue),
-    }
-}
-
-fn parse_non_quoted(byte: u8) -> CSVResult {
-    match byte {
-        COMMA | LF => Ok(CSVState::Start),
-        CR => Ok(CSVState::ExpectLF),
-        _ => Ok(CSVState::NonQuotedValue),
-    }
-}
-
-fn parse_quoted(byte: u8) -> CSVResult {
-    match byte {
-        QUOTE => Ok(CSVState::QuoteQuote),
-        CR | LF => Err(UNEXPECTED_EOL),
-        _ => Ok(CSVState::QuotedValue),
-    }
-}
-
-fn parse_quote_quote(byte: u8) -> CSVResult {
-    match byte {
-        QUOTE => Ok(CSVState::QuotedValue),
-        COMMA | LF => Ok(CSVState::Start),
-        CR => Ok(CSVState::ExpectLF),
-        _ => Err(UNEXPECTED_CHAR),
-    }
-}
-
-fn parse_cr(byte: u8) -> CSVResult {
-    match byte {
-        LF => Ok(CSVState::Start),
-        _ => Err(EXPECTED_LF),
-    }
-}
-
-fn parse_err(byte: u8) -> CSVResult {
-    match byte {
-        LF => Ok(CSVState::Start),
-        _ => Ok(CSVState::Error),
-    }
-}
-
-fn next_state(state: CSVState, byte: u8) -> CSVResult {
-    match state {
-        CSVState::Start => parse_start(byte),
-        CSVState::NonQuotedValue => parse_non_quoted(byte),
-        CSVState::QuotedValue => parse_quoted(byte),
-        CSVState::QuoteQuote => parse_quote_quote(byte),
-        CSVState::ExpectLF => parse_cr(byte),
-        CSVState::Error => parse_err(byte),
-    }
 }
 
 pub fn publish_errors_for_csv<T: Read + Send + 'static>(reader: T) -> Receiver<CSVError> {
@@ -104,17 +82,19 @@ pub fn publish_errors_for_csv<T: Read + Send + 'static>(reader: T) -> Receiver<C
         for b in reader.bytes() {
             let byte = b.unwrap();
 
-            state = match next_state(state, byte) {
+            state = match state.parse_byte(byte) {
                 Ok(new_state) => new_state,
                 Err(error) => {
-                    sender.send(CSVError {
-                        line: line,
-                        col: col,
-                        text: error,
-                    }).unwrap();
+                    sender
+                        .send(CSVError {
+                            line: line,
+                            col: col,
+                            text: error,
+                        })
+                        .unwrap();
                     match error {
                         UNEXPECTED_EOL => CSVState::Start,
-                        _ => CSVState::Error
+                        _ => CSVState::Error,
                     }
                 }
             };
