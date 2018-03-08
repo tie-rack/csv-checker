@@ -4,6 +4,7 @@
 
 use std::env;
 use std::fs::File;
+use std::io::BufReader;
 use std::path::Path;
 
 extern crate csv_checker;
@@ -11,7 +12,9 @@ extern crate csv_checker;
 fn report_errors_for_file(file: File) -> i32 {
     let mut exit = 0;
 
-    let rx = csv_checker::publish_errors_for_csv(file);
+    let reader = BufReader::new(file);
+
+    let rx = csv_checker::publish_errors_for_csv(reader);
 
     for error in rx {
         exit = 1;
