@@ -66,8 +66,8 @@ impl ParseByte for CSVState {
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CSVError {
-    pub line: i32,
-    pub col: i32,
+    pub line: u32,
+    pub col: u32,
     pub text: &'static str,
 }
 
