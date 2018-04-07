@@ -12,11 +12,11 @@ extern crate csv_checker;
 fn report_errors_for_file(file: File) -> i32 {
     let mut exit = 0;
 
-    let reader = BufReader::new(file);
+    let mut reader = BufReader::new(file);
 
-    let rx = csv_checker::publish_errors_for_csv(reader);
+    let report = csv_checker::csv_report(&mut reader);
 
-    for error in rx {
+    for error in report {
         exit = 1;
         println!(
             "error at line {}, col {}: {}",

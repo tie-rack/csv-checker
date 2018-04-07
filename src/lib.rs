@@ -3,9 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::io::Read;
-use std::sync::mpsc::channel;
-use std::sync::mpsc::Receiver;
-use std::thread;
 
 const LF: u8 = b'\n';
 const CR: u8 = b'\r';
@@ -29,37 +26,37 @@ enum CSVState {
 type CSVResult = Result<CSVState, &'static str>;
 
 trait ParseByte {
-    fn parse_byte(self, byte: u8) -> CSVResult;
+    fn parse_byte(&self, byte: u8) -> CSVResult;
 }
 
 impl ParseByte for CSVState {
-    fn parse_byte(self, byte: u8) -> CSVResult {
+    fn parse_byte(&self, byte: u8) -> CSVResult {
         match (self, byte) {
-            (CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
-            (CSVState::Start, COMMA) => Ok(CSVState::Start),
-            (CSVState::Start, _) => Ok(CSVState::NonQuotedValue),
+            (&CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
+            (&CSVState::Start, COMMA) => Ok(CSVState::Start),
+            (&CSVState::Start, _) => Ok(CSVState::NonQuotedValue),
 
-            (CSVState::NonQuotedValue, COMMA) => Ok(CSVState::Start),
-            (CSVState::NonQuotedValue, LF) => Ok(CSVState::Start),
-            (CSVState::NonQuotedValue, CR) => Ok(CSVState::ExpectLF),
-            (CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
+            (&CSVState::NonQuotedValue, COMMA) => Ok(CSVState::Start),
+            (&CSVState::NonQuotedValue, LF) => Ok(CSVState::Start),
+            (&CSVState::NonQuotedValue, CR) => Ok(CSVState::ExpectLF),
+            (&CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
 
-            (CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
-            (CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
-            (CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
-            (CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
+            (&CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
+            (&CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
+            (&CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
+            (&CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
 
-            (CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
-            (CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
-            (CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
-            (CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
-            (CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
+            (&CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
+            (&CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
+            (&CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
+            (&CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
+            (&CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
 
-            (CSVState::ExpectLF, LF) => Ok(CSVState::Start),
-            (CSVState::ExpectLF, _) => Err(EXPECTED_LF),
+            (&CSVState::ExpectLF, LF) => Ok(CSVState::Start),
+            (&CSVState::ExpectLF, _) => Err(EXPECTED_LF),
 
-            (CSVState::Error, LF) => Ok(CSVState::Start),
-            (CSVState::Error, _) => Ok(CSVState::Error),
+            (&CSVState::Error, LF) => Ok(CSVState::Start),
+            (&CSVState::Error, _) => Ok(CSVState::Error),
         }
     }
 }
@@ -71,42 +68,43 @@ pub struct CSVError {
     pub text: &'static str,
 }
 
-pub fn publish_errors_for_csv<T: Read + Send + 'static>(reader: T) -> Receiver<CSVError> {
-    let (sender, receiver) = channel();
+pub fn csv_report<'a>(reader: &'a mut Read) -> Box<Iterator<Item = CSVError> + 'a> {
+    let mut line = 1;
+    let mut col = 0;
+    let mut state = CSVState::Start;
 
-    thread::spawn(move || {
-        let mut state = CSVState::Start;
-        let mut line = 1;
-        let mut col = 0;
+    Box::new(reader.bytes().filter_map(move |b| {
+        let byte = b.unwrap();
 
-        for b in reader.bytes() {
-            let byte = b.unwrap();
-
-            state = match state.parse_byte(byte) {
-                Ok(new_state) => new_state,
-                Err(error) => {
-                    sender
-                        .send(CSVError {
-                            line: line,
-                            col: col,
-                            text: error,
-                        })
-                        .unwrap();
-                    match error {
-                        UNEXPECTED_EOL => CSVState::Start,
-                        _ => CSVState::Error,
-                    }
+        match state.parse_byte(byte) {
+            Ok(new_state) => {
+                state = new_state;
+                if byte == LF {
+                    line += 1;
+                    col = 0;
+                } else {
+                    col += 1;
                 }
-            };
-
-            if byte == LF {
-                line += 1;
-                col = 0;
-            } else {
-                col += 1;
+                None
+            },
+            Err(error) => {
+                let err = CSVError {
+                    line: line,
+                    col: col,
+                    text: error,
+                };
+                if byte == LF {
+                    line += 1;
+                    col = 0;
+                } else {
+                    col += 1;
+                };
+                state = match error {
+                    UNEXPECTED_EOL => CSVState::Start,
+                    _ => CSVState::Error,
+                };
+                Some(err)
             }
         }
-    });
-
-    receiver
+    }))
 }
