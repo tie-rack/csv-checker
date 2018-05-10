@@ -32,31 +32,31 @@ trait ParseByte {
 impl ParseByte for CSVState {
     fn parse_byte(&self, byte: u8) -> CSVResult {
         match (self, byte) {
-            (&CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
-            (&CSVState::Start, COMMA) => Ok(CSVState::Start),
-            (&CSVState::Start, _) => Ok(CSVState::NonQuotedValue),
+            (CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
+            (CSVState::Start, COMMA) => Ok(CSVState::Start),
+            (CSVState::Start, _) => Ok(CSVState::NonQuotedValue),
 
-            (&CSVState::NonQuotedValue, COMMA) => Ok(CSVState::Start),
-            (&CSVState::NonQuotedValue, LF) => Ok(CSVState::Start),
-            (&CSVState::NonQuotedValue, CR) => Ok(CSVState::ExpectLF),
-            (&CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
+            (CSVState::NonQuotedValue, COMMA) => Ok(CSVState::Start),
+            (CSVState::NonQuotedValue, LF) => Ok(CSVState::Start),
+            (CSVState::NonQuotedValue, CR) => Ok(CSVState::ExpectLF),
+            (CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
 
-            (&CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
-            (&CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
-            (&CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
-            (&CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
+            (CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
+            (CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
+            (CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
+            (CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
 
-            (&CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
-            (&CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
-            (&CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
-            (&CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
-            (&CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
+            (CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
+            (CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
+            (CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
+            (CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
+            (CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
 
-            (&CSVState::ExpectLF, LF) => Ok(CSVState::Start),
-            (&CSVState::ExpectLF, _) => Err(EXPECTED_LF),
+            (CSVState::ExpectLF, LF) => Ok(CSVState::Start),
+            (CSVState::ExpectLF, _) => Err(EXPECTED_LF),
 
-            (&CSVState::Error, LF) => Ok(CSVState::Start),
-            (&CSVState::Error, _) => Ok(CSVState::Error),
+            (CSVState::Error, LF) => Ok(CSVState::Start),
+            (CSVState::Error, _) => Ok(CSVState::Error),
         }
     }
 }
