@@ -68,12 +68,12 @@ pub struct CSVError {
     pub text: &'static str,
 }
 
-pub fn csv_report<'a>(reader: &'a mut Read) -> Box<Iterator<Item = CSVError> + 'a> {
+pub fn csv_report<'a>(reader: &'a mut Read) -> impl Iterator<Item = CSVError> + 'a {
     let mut line = 1;
     let mut col = 0;
     let mut state = CSVState::Start;
 
-    Box::new(reader.bytes().filter_map(move |b| {
+    reader.bytes().filter_map(move |b| {
         let byte = b.unwrap();
 
         match state.parse_byte(byte) {
@@ -106,5 +106,5 @@ pub fn csv_report<'a>(reader: &'a mut Read) -> Box<Iterator<Item = CSVError> + '
                 Some(err)
             }
         }
-    }))
+    })
 }
