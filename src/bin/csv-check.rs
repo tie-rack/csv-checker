@@ -10,14 +10,16 @@ use std::path::Path;
 extern crate csv_checker;
 
 fn report_errors_for_file(file: File) -> i32 {
-    let mut exit = 0;
-
     let mut reader = BufReader::new(file);
 
-    let report = csv_checker::csv_report(&mut reader);
+    let mut report = csv_checker::csv_report(&mut reader).peekable();
+
+    let exit = match report.peek() {
+        None => 0,
+        _ => 1,
+    };
 
     for error in report {
-        exit = 1;
         println!(
             "error at line {}, col {}: {}",
             error.line, error.col, error.text
