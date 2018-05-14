@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::fmt;
 use std::io::Read;
 
 const LF: u8 = b'\n';
@@ -66,6 +67,12 @@ pub struct CSVError {
     pub line: u32,
     pub col: u32,
     pub text: &'static str,
+}
+
+impl fmt::Display for CSVError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}:{} {}", self.line, self.col, self.text)
+    }
 }
 
 pub fn csv_report<'a>(reader: &'a mut Read) -> impl Iterator<Item = CSVError> + 'a {

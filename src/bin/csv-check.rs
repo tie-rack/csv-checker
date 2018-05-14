@@ -20,10 +20,7 @@ fn report_errors_for_file(file: File) -> i32 {
     };
 
     for error in report {
-        println!(
-            "error at line {}, col {}: {}",
-            error.line, error.col, error.text
-        );
+        println!("{}", error);
     }
 
     exit
