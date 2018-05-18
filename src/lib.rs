@@ -11,9 +11,9 @@ const QUOTE: u8 = b'"';
 const COMMA: u8 = b',';
 
 // Error messages
-pub const UNEXPECTED_EOL: &str = "Unexpected end of line";
-pub const UNEXPECTED_CHAR: &str = "Unexpected character after quote";
-pub const EXPECTED_LF: &str = "Expected linefeed after carriage return";
+const UNEXPECTED_EOL: &str = "Unexpected end of line";
+const UNEXPECTED_CHAR: &str = "Unexpected character after quote";
+const EXPECTED_LF: &str = "Expected linefeed after carriage return";
 
 enum CSVState {
     Start,
@@ -93,7 +93,7 @@ pub fn csv_report<'a>(reader: &'a mut Read) -> impl Iterator<Item = CSVError> + 
                     col += 1;
                 }
                 None
-            },
+            }
             Err(error) => {
                 let err = CSVError {
                     line: line,
@@ -114,4 +114,72 @@ pub fn csv_report<'a>(reader: &'a mut Read) -> impl Iterator<Item = CSVError> + 
             }
         }
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{csv_report, CSVError, UNEXPECTED_CHAR, UNEXPECTED_EOL};
+
+    #[test]
+    fn finds_errors_in_csv() {
+        use std::error::Error;
+        use std::fs::File;
+
+        let mut file = match File::open("tests/test.csv") {
+            Err(why) => panic!("couldn't open: {}", Error::description(&why)),
+            Ok(file) => file,
+        };
+
+        let mut report = csv_report(&mut file);
+
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 2,
+                col: 13,
+                text: UNEXPECTED_CHAR,
+            })
+        );
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 3,
+                col: 28,
+                text: UNEXPECTED_EOL,
+            })
+        );
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 5,
+                col: 31,
+                text: UNEXPECTED_EOL,
+            })
+        );
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 8,
+                col: 14,
+                text: UNEXPECTED_CHAR,
+            })
+        );
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 11,
+                col: 39,
+                text: UNEXPECTED_EOL,
+            })
+        );
+        assert_eq!(
+            report.next(),
+            Some(CSVError {
+                line: 12,
+                col: 28,
+                text: UNEXPECTED_EOL,
+            })
+        );
+        assert_eq!(report.next(), None);
+    }
 }
