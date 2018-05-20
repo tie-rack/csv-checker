@@ -58,7 +58,7 @@ impl CSVState {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub struct CSVError {
     pub line: u32,
     pub col: u32,
