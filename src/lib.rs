@@ -26,11 +26,7 @@ enum CSVState {
 
 type CSVResult = Result<CSVState, &'static str>;
 
-trait ParseByte {
-    fn parse_byte(&self, byte: u8) -> CSVResult;
-}
-
-impl ParseByte for CSVState {
+impl CSVState {
     fn parse_byte(&self, byte: u8) -> CSVResult {
         match (self, byte) {
             (CSVState::Start, QUOTE) => Ok(CSVState::QuotedValue),
