@@ -10,9 +10,9 @@ use std::path::Path;
 extern crate csv_checker;
 
 fn report_errors_for_file(file: File) -> i32 {
-    let mut reader = BufReader::new(file);
+    let reader = BufReader::new(file);
 
-    let mut report = csv_checker::csv_report(&mut reader).peekable();
+    let mut report = csv_checker::csv_report(reader).peekable();
 
     let exit = match report.peek() {
         None => 0,

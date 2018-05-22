@@ -71,7 +71,7 @@ impl fmt::Display for CSVError {
     }
 }
 
-pub fn csv_report<'a>(reader: &'a mut Read) -> impl Iterator<Item = CSVError> + 'a {
+pub fn csv_report(reader: impl Read) -> impl Iterator<Item = CSVError> {
     let mut line = 1;
     let mut col = 0;
     let mut state = CSVState::Start;
