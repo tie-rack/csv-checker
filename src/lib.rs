@@ -118,13 +118,9 @@ mod tests {
 
     #[test]
     fn finds_errors_in_csv() {
-        use std::error::Error;
         use std::fs::File;
 
-        let mut file = match File::open("tests/test.csv") {
-            Err(why) => panic!("couldn't open: {}", Error::description(&why)),
-            Ok(file) => file,
-        };
+        let mut file = File::open("tests/test.csv").unwrap();
 
         let mut report = csv_report(&mut file);
 
