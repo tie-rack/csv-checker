@@ -90,19 +90,15 @@ pub fn csv_report(reader: impl Read) -> impl Iterator<Item = CSVError> {
                 }
                 None
             }
-            Err(error) => {
-                let err = CSVError {
-                    line: line,
-                    col: col,
-                    text: error,
-                };
+            Err(text) => {
+                let err = CSVError {line, col, text};
                 if byte == LF {
                     line += 1;
                     col = 0;
                 } else {
                     col += 1;
                 };
-                state = match error {
+                state = match text {
                     UNEXPECTED_EOL => CSVState::Start,
                     _ => CSVState::Error,
                 };
