@@ -10,10 +10,23 @@ const CR: u8 = b'\r';
 const QUOTE: u8 = b'"';
 const COMMA: u8 = b',';
 
-// Error messages
-const UNEXPECTED_EOL: &str = "Unexpected end of line";
-const UNEXPECTED_CHAR: &str = "Unexpected character after quote";
-const EXPECTED_LF: &str = "Expected linefeed after carriage return";
+#[derive(Debug, PartialEq)]
+pub enum ErrorType {
+    UnexpectedEOL,
+    UnexpectedChar,
+    ExpectedLF,
+}
+
+impl fmt::Display for ErrorType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let text = match self {
+            ErrorType::UnexpectedEOL => "Unexpected EOL",
+            ErrorType::UnexpectedChar => "Unexpected char",
+            ErrorType::ExpectedLF => "Expected LF",
+        };
+        write!(f, "{}", text)
+    }
+}
 
 enum CSVState {
     Start,
@@ -24,7 +37,7 @@ enum CSVState {
     Error,
 }
 
-type CSVResult = Result<CSVState, &'static str>;
+type CSVResult = Result<CSVState, ErrorType>;
 
 impl CSVState {
     fn parse_byte(&self, byte: u8) -> CSVResult {
@@ -39,18 +52,18 @@ impl CSVState {
             (CSVState::NonQuotedValue, _) => Ok(CSVState::NonQuotedValue),
 
             (CSVState::QuotedValue, QUOTE) => Ok(CSVState::QuoteQuote),
-            (CSVState::QuotedValue, CR) => Err(UNEXPECTED_EOL),
-            (CSVState::QuotedValue, LF) => Err(UNEXPECTED_EOL),
+            (CSVState::QuotedValue, CR) => Err(ErrorType::UnexpectedEOL),
+            (CSVState::QuotedValue, LF) => Err(ErrorType::UnexpectedEOL),
             (CSVState::QuotedValue, _) => Ok(CSVState::QuotedValue),
 
             (CSVState::QuoteQuote, QUOTE) => Ok(CSVState::QuotedValue),
             (CSVState::QuoteQuote, COMMA) => Ok(CSVState::Start),
             (CSVState::QuoteQuote, LF) => Ok(CSVState::Start),
             (CSVState::QuoteQuote, CR) => Ok(CSVState::ExpectLF),
-            (CSVState::QuoteQuote, _) => Err(UNEXPECTED_CHAR),
+            (CSVState::QuoteQuote, _) => Err(ErrorType::UnexpectedChar),
 
             (CSVState::ExpectLF, LF) => Ok(CSVState::Start),
-            (CSVState::ExpectLF, _) => Err(EXPECTED_LF),
+            (CSVState::ExpectLF, _) => Err(ErrorType::ExpectedLF),
 
             (CSVState::Error, LF) => Ok(CSVState::Start),
             (CSVState::Error, _) => Ok(CSVState::Error),
@@ -62,12 +75,12 @@ impl CSVState {
 pub struct CSVError {
     pub line: u32,
     pub col: u32,
-    pub text: &'static str,
+    pub error_type: ErrorType,
 }
 
 impl fmt::Display for CSVError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}:{} {}", self.line, self.col, self.text)
+        write!(f, "{}:{} {}", self.line, self.col, self.error_type)
     }
 }
 
@@ -90,16 +103,16 @@ pub fn csv_report(reader: impl Read) -> impl Iterator<Item = CSVError> {
                 }
                 None
             }
-            Err(text) => {
-                let err = CSVError {line, col, text};
+            Err(error_type) => {
+                let err = CSVError {line, col, error_type};
                 if byte == LF {
                     line += 1;
                     col = 0;
                 } else {
                     col += 1;
                 };
-                state = match text {
-                    UNEXPECTED_EOL => CSVState::Start,
+                state = match err.error_type {
+                    ErrorType::UnexpectedEOL => CSVState::Start,
                     _ => CSVState::Error,
                 };
                 Some(err)
@@ -110,7 +123,7 @@ pub fn csv_report(reader: impl Read) -> impl Iterator<Item = CSVError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{csv_report, CSVError, UNEXPECTED_CHAR, UNEXPECTED_EOL};
+    use super::{csv_report, CSVError, ErrorType};
 
     #[test]
     fn finds_errors_in_csv() {
@@ -125,7 +138,7 @@ mod tests {
             Some(CSVError {
                 line: 2,
                 col: 13,
-                text: UNEXPECTED_CHAR,
+                error_type: ErrorType::UnexpectedChar,
             })
         );
         assert_eq!(
@@ -133,7 +146,7 @@ mod tests {
             Some(CSVError {
                 line: 3,
                 col: 28,
-                text: UNEXPECTED_EOL,
+                error_type: ErrorType::UnexpectedEOL,
             })
         );
         assert_eq!(
@@ -141,7 +154,7 @@ mod tests {
             Some(CSVError {
                 line: 5,
                 col: 31,
-                text: UNEXPECTED_EOL,
+                error_type: ErrorType::UnexpectedEOL,
             })
         );
         assert_eq!(
@@ -149,7 +162,7 @@ mod tests {
             Some(CSVError {
                 line: 8,
                 col: 14,
-                text: UNEXPECTED_CHAR,
+                error_type: ErrorType::UnexpectedChar,
             })
         );
         assert_eq!(
@@ -157,7 +170,7 @@ mod tests {
             Some(CSVError {
                 line: 11,
                 col: 39,
-                text: UNEXPECTED_EOL,
+                error_type: ErrorType::UnexpectedEOL,
             })
         );
         assert_eq!(
@@ -165,7 +178,7 @@ mod tests {
             Some(CSVError {
                 line: 12,
                 col: 28,
-                text: UNEXPECTED_EOL,
+                error_type: ErrorType::UnexpectedEOL,
             })
         );
         assert_eq!(report.next(), None);
